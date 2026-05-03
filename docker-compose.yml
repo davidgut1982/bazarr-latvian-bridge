@@ -1,0 +1,7 @@
+services:
+  lingarr-shim:
+    build: ./lingarr-shim
+    ports:
+      - "8200:8200"
+    env_file: ./lingarr-shim/.env
+    restart: unless-stopped
