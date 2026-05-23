@@ -4,7 +4,7 @@ services:
     container_name: lingarr-shim
     network_mode: host
     environment:
-      - BACK_TRANSLATOR_URL=http://192.168.1.30:8104
+      - BACK_TRANSLATOR_URL=http://192.168.1.30:9001
       - BATCH_SIZE=64
       - REQUEST_TIMEOUT=120
     restart: unless-stopped

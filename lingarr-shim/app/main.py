@@ -17,8 +17,11 @@ from pydantic import BaseModel
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("lingarr-shim")
 
-app = FastAPI(title="lingarr-shim", version="1.0.0",
-              description="Lingarr-protocol adapter for NLLB-200 back-translator")
+app = FastAPI(
+    title="lingarr-shim",
+    version="1.0.0",
+    description="Lingarr-protocol adapter for NLLB-200 back-translator",
+)
 
 BACK_TRANSLATOR_URL = os.getenv("BACK_TRANSLATOR_URL", "http://192.168.1.30:8104")
 BATCH_SIZE = int(os.getenv("BATCH_SIZE", "64"))
@@ -27,32 +30,110 @@ REQUEST_TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "120"))
 # ISO 639-1 (Bazarr) -> FLORES-200 (NLLB-200) language code mapping
 # Covers all languages supported by NLLB-200 that Bazarr may send
 ISO_TO_FLORES = {
-    "af": "afr_Latn", "ak": "aka_Latn", "am": "amh_Ethi", "ar": "arb_Arab",
-    "as": "asm_Beng", "ay": "ayr_Latn", "az": "azj_Latn", "bm": "bam_Latn",
-    "be": "bel_Cyrl", "bn": "ben_Beng", "bho": "bho_Deva", "bs": "bos_Latn",
-    "bg": "bul_Cyrl", "ca": "cat_Latn", "ceb": "ceb_Latn", "cs": "ces_Latn",
-    "ckb": "ckb_Arab", "tt": "crh_Latn", "cy": "cym_Latn", "da": "dan_Latn",
-    "de": "deu_Latn", "el": "ell_Grek", "en": "eng_Latn", "eo": "epo_Latn",
-    "et": "est_Latn", "eu": "eus_Latn", "ee": "ewe_Latn", "fa": "pes_Arab",
-    "fi": "fin_Latn", "fr": "fra_Latn", "gl": "glg_Latn", "gu": "guj_Gujr",
-    "ha": "hau_Latn", "he": "heb_Hebr", "hi": "hin_Deva", "hr": "hrv_Latn",
-    "hu": "hun_Latn", "hy": "hye_Armn", "id": "ind_Latn", "ig": "ibo_Latn",
-    "ilo": "ilo_Latn", "is": "isl_Latn", "it": "ita_Latn", "ja": "jpn_Jpan",
-    "jv": "jav_Latn", "ka": "kat_Geor", "kn": "kan_Knda", "km": "khm_Khmr",
-    "ko": "kor_Hang", "lo": "lao_Laoo", "lt": "lit_Latn", "lv": "lvs_Latn",
-    "lb": "ltz_Latn", "mk": "mkd_Cyrl", "mg": "plt_Latn", "ml": "mal_Mlym",
-    "mr": "mar_Deva", "ms": "zsm_Latn", "mt": "mlt_Latn", "my": "mya_Mymr",
-    "ne": "npi_Deva", "nl": "nld_Latn", "no": "nob_Latn", "ny": "nya_Latn",
-    "om": "gaz_Latn", "or": "ory_Orya", "pa": "pan_Guru", "pl": "pol_Latn",
-    "pt": "por_Latn", "pb": "por_Latn", "ro": "ron_Latn", "ru": "rus_Cyrl",
-    "rw": "kin_Latn", "sa": "san_Deva", "si": "sin_Sinh", "sk": "slk_Latn",
-    "sl": "slv_Latn", "sn": "sna_Latn", "so": "som_Latn", "sq": "als_Latn",
-    "sr": "srp_Cyrl", "st": "sot_Latn", "su": "sun_Latn", "sv": "swe_Latn",
-    "sw": "swh_Latn", "ta": "tam_Taml", "te": "tel_Telu", "tg": "tgk_Cyrl",
-    "th": "tha_Thai", "ti": "tir_Ethi", "tk": "tuk_Latn", "tl": "fil_Latn",
-    "tr": "tur_Latn", "uk": "ukr_Cyrl", "ur": "urd_Arab", "uz": "uzn_Latn",
-    "vi": "vie_Latn", "wo": "wol_Latn", "xh": "xho_Latn", "yi": "ydd_Hebr",
-    "yo": "yor_Latn", "zh": "zho_Hans", "zt": "zho_Hant", "zu": "zul_Latn",
+    "af": "afr_Latn",
+    "ak": "aka_Latn",
+    "am": "amh_Ethi",
+    "ar": "arb_Arab",
+    "as": "asm_Beng",
+    "ay": "ayr_Latn",
+    "az": "azj_Latn",
+    "bm": "bam_Latn",
+    "be": "bel_Cyrl",
+    "bn": "ben_Beng",
+    "bho": "bho_Deva",
+    "bs": "bos_Latn",
+    "bg": "bul_Cyrl",
+    "ca": "cat_Latn",
+    "ceb": "ceb_Latn",
+    "cs": "ces_Latn",
+    "ckb": "ckb_Arab",
+    "tt": "crh_Latn",
+    "cy": "cym_Latn",
+    "da": "dan_Latn",
+    "de": "deu_Latn",
+    "el": "ell_Grek",
+    "en": "eng_Latn",
+    "eo": "epo_Latn",
+    "et": "est_Latn",
+    "eu": "eus_Latn",
+    "ee": "ewe_Latn",
+    "fa": "pes_Arab",
+    "fi": "fin_Latn",
+    "fr": "fra_Latn",
+    "gl": "glg_Latn",
+    "gu": "guj_Gujr",
+    "ha": "hau_Latn",
+    "he": "heb_Hebr",
+    "hi": "hin_Deva",
+    "hr": "hrv_Latn",
+    "hu": "hun_Latn",
+    "hy": "hye_Armn",
+    "id": "ind_Latn",
+    "ig": "ibo_Latn",
+    "ilo": "ilo_Latn",
+    "is": "isl_Latn",
+    "it": "ita_Latn",
+    "ja": "jpn_Jpan",
+    "jv": "jav_Latn",
+    "ka": "kat_Geor",
+    "kn": "kan_Knda",
+    "km": "khm_Khmr",
+    "ko": "kor_Hang",
+    "lo": "lao_Laoo",
+    "lt": "lit_Latn",
+    "lv": "lvs_Latn",
+    "lb": "ltz_Latn",
+    "mk": "mkd_Cyrl",
+    "mg": "plt_Latn",
+    "ml": "mal_Mlym",
+    "mr": "mar_Deva",
+    "ms": "zsm_Latn",
+    "mt": "mlt_Latn",
+    "my": "mya_Mymr",
+    "ne": "npi_Deva",
+    "nl": "nld_Latn",
+    "no": "nob_Latn",
+    "ny": "nya_Latn",
+    "om": "gaz_Latn",
+    "or": "ory_Orya",
+    "pa": "pan_Guru",
+    "pl": "pol_Latn",
+    "pt": "por_Latn",
+    "pb": "por_Latn",
+    "ro": "ron_Latn",
+    "ru": "rus_Cyrl",
+    "rw": "kin_Latn",
+    "sa": "san_Deva",
+    "si": "sin_Sinh",
+    "sk": "slk_Latn",
+    "sl": "slv_Latn",
+    "sn": "sna_Latn",
+    "so": "som_Latn",
+    "sq": "als_Latn",
+    "sr": "srp_Cyrl",
+    "st": "sot_Latn",
+    "su": "sun_Latn",
+    "sv": "swe_Latn",
+    "sw": "swh_Latn",
+    "ta": "tam_Taml",
+    "te": "tel_Telu",
+    "tg": "tgk_Cyrl",
+    "th": "tha_Thai",
+    "ti": "tir_Ethi",
+    "tk": "tuk_Latn",
+    "tl": "fil_Latn",
+    "tr": "tur_Latn",
+    "uk": "ukr_Cyrl",
+    "ur": "urd_Arab",
+    "uz": "uzn_Latn",
+    "vi": "vie_Latn",
+    "wo": "wol_Latn",
+    "xh": "xho_Latn",
+    "yi": "ydd_Hebr",
+    "yo": "yor_Latn",
+    "zh": "zho_Hans",
+    "zt": "zho_Hant",
+    "zu": "zul_Latn",
 }
 
 
@@ -92,7 +173,7 @@ async def translate_content(req: TranslateRequest) -> list[dict[str, Any]]:
         src_flores = to_flores(req.sourceLanguage)
         tgt_flores = to_flores(req.targetLanguage)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
     logger.info(
         f"Translating {len(req.lines)} lines "
@@ -101,8 +182,8 @@ async def translate_content(req: TranslateRequest) -> list[dict[str, Any]]:
     )
 
     # Split into batches of BATCH_SIZE (NLLB-200 hard limit: 64)
-    positions = [l.position for l in req.lines]
-    texts = [l.line for l in req.lines]
+    positions = [entry.position for entry in req.lines]
+    texts = [entry.line for entry in req.lines]
     translated: list[str] = []
 
     async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
@@ -126,10 +207,12 @@ async def translate_content(req: TranslateRequest) -> list[dict[str, Any]]:
                         f"translations for {len(chunk)} inputs"
                     )
                 translated.extend(batch_translations)
-                logger.debug(f"Batch {i//BATCH_SIZE + 1}: {len(chunk)} lines translated")
+                logger.debug(f"Batch {i // BATCH_SIZE + 1}: {len(chunk)} lines translated")
             except httpx.HTTPError as e:
                 logger.error(f"Back-translator HTTP error: {e}")
-                raise HTTPException(status_code=502, detail=f"Back-translator error: {e}")
+                raise HTTPException(status_code=502, detail=f"Back-translator error: {e}") from e
 
     # Reconstruct Lingarr-protocol response: [{position, line}]
-    return [{"position": pos, "line": text} for pos, text in zip(positions, translated)]
+    return [
+        {"position": pos, "line": text} for pos, text in zip(positions, translated, strict=False)
+    ]

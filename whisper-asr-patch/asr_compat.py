@@ -16,6 +16,8 @@ Usage: import and include this router in asr-transcription-lv's main.py
     from asr_compat import router as asr_compat_router
     app.include_router(asr_compat_router)
 """
-from fastapi import APIRouter, UploadFile, File, Form
+
+from fastapi import APIRouter
+
 # TODO: implement
 router = APIRouter()
